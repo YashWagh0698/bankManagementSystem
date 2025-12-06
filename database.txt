@@ -1,0 +1,66 @@
+CREATE TABLE Customers (
+    CustomerId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    FirstName VARCHAR(100),
+    LastName VARCHAR(100),
+    Email VARCHAR(200) UNIQUE,
+    Phone VARCHAR(15),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL
+);
+
+CREATE TABLE Accounts (
+    AccountId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    AccountType VARCHAR(50),
+    Balance DECIMAL(18,2) DEFAULT 0,
+    Status VARCHAR(20) DEFAULT 'ACTIVE',
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    CONSTRAINT FK_Accounts_Customers
+        FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
+);
+
+CREATE TABLE Transactions (
+    TransactionId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    AccountId UNIQUEIDENTIFIER NOT NULL,
+    Type VARCHAR(20), -- DEPOSIT / WITHDRAW / TRANSFER_DEBIT / TRANSFER_CREDIT
+    Amount DECIMAL(18,2),
+    Status VARCHAR(20), -- SUCCESS/FAILED/PENDING
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Transactions_Accounts
+        FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId)
+);
+
+CREATE TABLE TransferSaga (
+    SagaId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    FromAccountId UNIQUEIDENTIFIER,
+    ToAccountId UNIQUEIDENTIFIER,
+    Amount DECIMAL(18,2),
+    Status VARCHAR(20), -- PENDING / SUCCESS / FAILED
+    Step INT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE VIEW AccountSummaryView AS
+SELECT 
+    a.AccountId,
+    c.FirstName + ' ' + c.LastName AS CustomerName,
+    a.AccountType,
+    a.Balance,
+    a.Status,
+    a.CreatedAt
+FROM Accounts a
+JOIN Customers c ON a.CustomerId = c.CustomerId;
+CREATE VIEW TransactionView AS
+SELECT 
+    t.TransactionId,
+    t.AccountId,
+    c.FirstName + ' ' + c.LastName AS CustomerName,
+    t.Type,
+    t.Amount,
+    t.Status,
+    t.CreatedAt
+FROM Transactions t
+JOIN Accounts a ON a.AccountId = t.AccountId
+JOIN Customers c ON c.CustomerId = a.CustomerId;
+
